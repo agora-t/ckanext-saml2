@@ -306,7 +306,7 @@ class Saml2Plugin(p.SingletonPlugin):
 
         saml2_user_info = saml2_get_user_info(name_id)
         if saml2_user_info is not None:
-            c.user = saml2_user_info[1].name
+            c.user = saml2_user_info[1].name.lower()
 
         log.debug("repoze.who.identity = {0}".format(dict(environ["repoze.who.identity"])))
 
@@ -324,6 +324,7 @@ class Saml2Plugin(p.SingletonPlugin):
         try:
             # Update the user account from the authentication response
             # every time
+            c.user = c.user.lower()
             c.userobj = self._create_or_update_user(c.user, saml_info, name_id)
             c.user = c.userobj.name
         except Exception as e:
@@ -427,9 +428,10 @@ class Saml2Plugin(p.SingletonPlugin):
         user_schema['name'] = [p.toolkit.get_validator('not_empty')]
         context = {'schema': user_schema, 'ignore_auth': True}
         if is_new_user:
-            email = _take_from_saml_or_user('email', saml_info, data_dict)
-            new_user_username = _get_random_username_from_email(email)
-
+            new_user_username = user_name
+            if not user_name:
+                email = _take_from_saml_or_user('email', saml_info, data_dict)
+                new_user_username = _get_random_username_from_email(email)
             name_id_from_saml2_NameID = config.get('saml2.name_id_from_saml2_NameID', False)
             if not name_id_from_saml2_NameID:
                 name_id = _take_from_saml_or_user('id', saml_info, data_dict)
